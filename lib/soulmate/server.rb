@@ -18,6 +18,8 @@ module Soulmate
     end
     
     get '/search' do
+      params[:types] = SOULMATES.collect {|t| t.to_s.underscore } if params[:types].nil?
+
       raise Sinatra::NotFound unless (params[:term] and params[:types] and params[:types].is_a?(Array))
       
       limit = (params[:limit] || 5).to_i
