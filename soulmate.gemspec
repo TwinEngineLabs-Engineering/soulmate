@@ -54,7 +54,7 @@ Gem::Specification.new do |s|
     s.specification_version = 3
 
     if Gem::Version.new(Gem::VERSION) >= Gem::Version.new('1.2.0') then
-      s.add_runtime_dependency(%q<redis>, ["~> 2.1.1"])
+      s.add_runtime_dependency(%q<redis>, ["~> 2.2.2"])
       s.add_runtime_dependency(%q<multi_json>, ["~> 1.0.3"])
       s.add_runtime_dependency(%q<rack-contrib>, [">= 0"])
       s.add_runtime_dependency(%q<vegas>, ["~> 0.1.8"])
