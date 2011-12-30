@@ -24,10 +24,10 @@ module Soulmate
       end
       
       ids = if visible_ids || scoped_ids
-        Soulmate.redis.zrevrange(cachekey, 0, -1) & (visible_ids.to_a | scoped_ids.to_a)
+        (Soulmate.redis.zrevrange(cachekey, 0, -1) & (visible_ids.to_a | scoped_ids.to_a)).first(options[:limit])
       else
-        Soulmate.redis.zrevrange(cachekey, 0, -1)
-      end.first(options[:limit])
+        Soulmate.redis.zrevrange(cachekey, 0, options[:limit] - 1)
+      end
       
       if ids.size > 0
         results = Soulmate.redis.hmget(database, *ids)
