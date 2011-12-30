@@ -5,6 +5,7 @@ require 'rack/contrib'
 module Soulmate
 
   class Server < Sinatra::Base
+    
     include Helpers
     
     use Rack::JSONP
@@ -33,15 +34,21 @@ module Soulmate
         cachekey = "soulmate-usercache:#{current_user.id}:" + type
         klass = type.classify.constantize
         
-        if !Soulmate.redis.exists(cachekey) && klass.respond_to?(:accessible_by)
+        if !Soulmate.redis.exists(cachekey) && klass.respond_to?(:soulmate_scope_visibility?) && klass.soulmate_scope_visibility?
           sql = klass.accessible_by(current_ability).select(:id).to_sql
           @ids = klass.connection.select_values(sql)
           
-          Soulmate::Cache.new(cachekey, @ids).enqueue!
+          Soulmate.redis.sadd(cachekey, *@ids)
+          Soulmate.redis.expire(cachekey, 10 * 60)
         end
-
-        matcher.visible_ids = @ids || Soulmate.redis.smembers(cachekey) if klass.respond_to?(:accessible_by)
-        matcher.scoped_ids = klass.scoped_ids(params) if klass.respond_to?(:scoped_ids)
+        
+        if klass.respond_to?(:soulmate_scope_visibility?) && klass.soulmate_scope_visibility?
+          matcher.visible_ids = @ids || Soulmate.redis.smembers(cachekey)
+        end
+        
+        if klass.respond_to?(:soulmate_scoped_ids)
+          matcher.scoped_ids = klass.soulmate_scoped_ids(params)
+        end
         
         results[type] = matcher.matches_for_term(term, :limit => limit)
       end
@@ -68,4 +75,5 @@ module Soulmate
     end
     
   end
+  
 end

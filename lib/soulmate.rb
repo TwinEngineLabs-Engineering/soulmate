@@ -7,7 +7,6 @@ require 'soulmate/helpers'
 require 'soulmate/base'
 require 'soulmate/matcher'
 require 'soulmate/loader'
-require 'soulmate/cache'
 
 module Soulmate
 

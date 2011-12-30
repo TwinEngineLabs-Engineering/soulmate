@@ -37,8 +37,7 @@ module Soulmate
         []
       end
     end
-    
-    
+     
   end
   
 end
