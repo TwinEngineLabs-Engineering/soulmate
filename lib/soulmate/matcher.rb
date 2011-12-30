@@ -1,6 +1,8 @@
 module Soulmate
 
   class Matcher < Base
+    
+    attr_accessor :visible_ids
 
     def matches_for_term(term, options = {})
       options = { :limit => 5, :cache => true }.merge(options)
@@ -19,7 +21,12 @@ module Soulmate
         Soulmate.redis.expire(cachekey, 10 * 60) # expire after 10 minutes
       end
 
-      ids = Soulmate.redis.zrevrange(cachekey, 0, options[:limit] - 1)
+      ids = if visible_ids
+        (Soulmate.redis.zrevrange(cachekey, 0, -1) & visible_ids).first(options[:limit])
+      else
+        Soulmate.redis.zrevrange(cachekey, 0, options[:limit] - 1)
+      end
+      
       if ids.size > 0
         results = Soulmate.redis.hmget(database, *ids)
         results = results.reject{ |r| r.nil? } # handle cached results for ids which have since been deleted
