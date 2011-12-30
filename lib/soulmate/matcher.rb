@@ -2,7 +2,7 @@ module Soulmate
 
   class Matcher < Base
     
-    attr_accessor :visible_ids
+    attr_accessor :visible_ids, :scoped_ids
 
     def matches_for_term(term, options = {})
       options = { :limit => 5, :cache => true }.merge(options)
@@ -12,6 +12,8 @@ module Soulmate
       end.sort
 
       return [] if words.empty?
+      return [] if visible_ids && visible_ids.empty?
+      return [] if scoped_ids && scoped_ids.empty?
 
       cachekey = "#{cachebase}:" + words.join('|')
 
@@ -20,12 +22,12 @@ module Soulmate
         Soulmate.redis.zinterstore(cachekey, interkeys)
         Soulmate.redis.expire(cachekey, 10 * 60) # expire after 10 minutes
       end
-
-      ids = if visible_ids
-        (Soulmate.redis.zrevrange(cachekey, 0, -1) & visible_ids).first(options[:limit])
+      
+      ids = if visible_ids || scoped_ids
+        Soulmate.redis.zrevrange(cachekey, 0, -1) & (visible_ids.to_a | scoped_ids.to_a)
       else
-        Soulmate.redis.zrevrange(cachekey, 0, options[:limit] - 1)
-      end
+        Soulmate.redis.zrevrange(cachekey, 0, -1)
+      end.first(options[:limit])
       
       if ids.size > 0
         results = Soulmate.redis.hmget(database, *ids)
@@ -35,5 +37,8 @@ module Soulmate
         []
       end
     end
+    
+    
   end
+  
 end

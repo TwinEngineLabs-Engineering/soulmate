@@ -30,19 +30,18 @@ module Soulmate
       types.each do |type|
         matcher = Matcher.new(type)
         
-        if current_user
-          cachekey = "soulmate-usercache:#{current_user.id}:" + type
+        cachekey = "soulmate-usercache:#{current_user.id}:" + type
+        klass = type.classify.constantize
+        
+        if !Soulmate.redis.exists(cachekey)
+          sql = klass.accessible_by(current_ability).select(:id).to_sql
+          @ids = klass.connection.select_values(sql)
           
-          if !Soulmate.redis.exists(cachekey)
-            klass = type.classify.constantize
-            sql = klass.accessible_by(current_ability).select(:id).to_sql
-            @ids = klass.connection.select_values(sql)
-            
-            Soulmate::Cache.new(cachekey, @ids).enqueue!
-          end
-
-          matcher.visible_ids = @ids || Soulmate.redis.smembers(cachekey)
+          Soulmate::Cache.new(cachekey, @ids).enqueue!
         end
+
+        matcher.visible_ids = @ids || Soulmate.redis.smembers(cachekey)        
+        matcher.scoped_ids = klass.scoped_ids(params)
         
         results[type] = matcher.matches_for_term(term, :limit => limit)
       end
