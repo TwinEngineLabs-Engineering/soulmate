@@ -37,6 +37,7 @@ module Soulmate
         if !Soulmate.redis.exists(cachekey) && klass.respond_to?(:soulmate_scope_visibility?) && klass.soulmate_scope_visibility?
           sql = klass.accessible_by(current_ability).select(:id).to_sql
           @ids = klass.connection.select_values(sql)
+          @ids = @ids.any? ? @ids : [0]
           
           Soulmate.redis.sadd(cachekey, *@ids)
           Soulmate.redis.expire(cachekey, 10 * 60)
